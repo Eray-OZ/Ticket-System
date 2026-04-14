@@ -23,4 +23,12 @@ export class TicketsService {
 
     }
 
+
+
+    async findOne(id: number) {
+        return this.prisma.ticket.findUnique({
+            where: { id },
+        });
+    }
+
 }
