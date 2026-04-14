@@ -1,4 +1,4 @@
-import { Injectable} from '@nestjs/common';
+import { BadRequestException, Injectable} from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -12,17 +12,20 @@ export class OrdersService {
 
         return await this.prisma.$transaction(async (prisma) => {   
 
-        const ticket = await prisma.ticket.findUnique({
-            where: { id: createOrderDto.ticketId },
-        });
+        const ticketUpdateResult = await prisma.ticket.updateMany({
+        where: { 
+          id: createOrderDto.ticketId,
+          totalStock: { gt: 0 }, 
+        },
+        data: {
+          totalStock: { decrement: 1 },
+        },
+      });
 
-        if (!ticket) {
-            throw new Error('Ticket not found');
-        }
 
-        if (ticket.totalStock <= 0) {
-            throw new Error('Ticket is out of stock');
-        }
+      if (ticketUpdateResult.count === 0) {
+        throw new BadRequestException('Tickets Sold Out!');
+      }
 
     
         const createdOrder = await prisma.order.create({
@@ -34,10 +37,6 @@ export class OrdersService {
         });
 
 
-        await prisma.ticket.update({
-            where: { id: createOrderDto.ticketId },
-            data: { totalStock: { decrement: 1 } },
-        });
 
         return createdOrder;
 
