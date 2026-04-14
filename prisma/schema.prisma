@@ -5,9 +5,39 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
+  moduleFormat  = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  eventName   String
+  totalStock  Int
+  price       Float
+  orders      Order[]
+}
+
+model Order {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ticketId  Int
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  // İlişkiler
+  user      User     @relation(fields: [userId], references: [id])
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
 }
