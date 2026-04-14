@@ -1,17 +1,26 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+import 'dotenv/config';
 
-const prisma = new PrismaClient();
+// 1. Manually set up the adapter just like in your PrismaService
+const connectionString = `${process.env.DATABASE_URL}`;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+// 2. Pass the adapter to the PrismaClient constructor
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Starting seed process...');
 
-  // 1. Clean existing data to ensure a fresh start
+  // Clean existing data
   console.log('🧹 Cleaning database...');
   await prisma.order.deleteMany();
   await prisma.user.deleteMany();
   await prisma.ticket.deleteMany();
 
-  // 2. Create 1000 users using createMany for high performance
+  // Create 1000 users
   console.log('👥 Generating 1000 users...');
   const users = Array.from({ length: 1000 }).map((_, i) => ({
     name: `User ${i + 1}`,
@@ -19,7 +28,7 @@ async function main() {
   }));
   await prisma.user.createMany({ data: users });
 
-  // 3. Create 10 major event tickets with different stock levels
+  // Create 10 tickets
   console.log('🎫 Generating tickets...');
   const tickets = [
     { eventName: 'Champions League Final', totalStock: 500, price: 1500 },
@@ -35,7 +44,7 @@ async function main() {
   ];
   await prisma.ticket.createMany({ data: tickets });
 
-  console.log('✅ Seed process completed successfully!');
+  console.log('Seed process completed successfully!');
 }
 
 main()
@@ -44,6 +53,6 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    // Close Prisma Client connection
     await prisma.$disconnect();
+    await pool.end(); // Don't forget to close the pool connection
   });
